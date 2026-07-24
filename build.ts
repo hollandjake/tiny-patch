@@ -14,7 +14,6 @@ await build({
             },
         },
         umd: {
-            minify: true,
             outputOptions: {
                 name: "tinypatch",
                 exports: "named",
@@ -41,4 +40,5 @@ if (module.exports && module.exports.default) {
             },
         },
     ],
+    minify: true,
 });
