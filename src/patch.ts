@@ -107,7 +107,7 @@ export function maximizeOp(op: Op): Maxi.Op {
     }
 }
 
-function isMinified(op: Op): op is Mini.Op {
+export function isMinified(op: Op): op is Mini.Op {
     if (!op) return false;
     if (!Array.isArray(op)) return false;
     if (!op.length) return false;
@@ -127,7 +127,7 @@ function isMinified(op: Op): op is Mini.Op {
     }
 }
 
-function isMaximised(op: Op): op is Maxi.Op {
+export function isMaximised(op: Op): op is Maxi.Op {
     if (!op) return false;
     if (typeof op !== "object") return false;
     if (!("op" in op)) return false;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { MissingError, PointerError } from "./error";
-import { decodePointer, decodeSegment, encodeSegment, evaluatePointer } from "./pointer";
+import { decodePointer, decodeSegment, encodePointer, encodeSegment, evaluatePointer } from "./pointer";
 import type { Json } from "./types";
 
 describe("decodePointer", () => {
@@ -34,6 +34,27 @@ describe("decodeSegment", () => {
         ["no escapes here", "no escapes here"],
     ] as [str: string, expected: string][])("decodes %j to %j", (str, expected) => {
         expect(decodeSegment(str)).toBe(expected);
+    });
+});
+
+describe("encodePointer", () => {
+    test.each([
+        [[], "/"],
+        [["a"], "/a"],
+        [["a", "b"], "/a/b"],
+        [["a", "0"], "/a/0"],
+        [["~"], "/~0"],
+        [["/"], "/~1"],
+        [["~1", "a/b"], "/~01/a~1b"],
+        [[""], "/"],
+    ] as [tokens: string[], expected: string][])("encodes %j to %j", (tokens, expected) => {
+        expect(encodePointer(tokens)).toBe(expected);
+    });
+
+    test("round-trips through decodePointer for arbitrary tokens", () => {
+        for (const tokens of [["a"], ["a", "b"], ["~tilde", "/slash"], []]) {
+            expect(decodePointer(encodePointer(tokens))).toEqual(tokens);
+        }
     });
 });
 

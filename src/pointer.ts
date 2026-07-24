@@ -28,6 +28,16 @@ export function decodeSegment(str: string) {
     return str;
 }
 
+export function encodePointer(tokens: string[]) {
+    // A loop building the string directly beats map+join - map allocates an intermediate
+    // array and join walks it again, both wasted for the small token counts real pointers have.
+    let out = "";
+    for (let i = 0, l = tokens.length; i < l; i++) {
+        out += `/${encodeSegment(tokens[i] as string)}`;
+    }
+    return out === "" ? "/" : out;
+}
+
 export function encodeSegment(str: string) {
     // A single manual scan beats paying for two unconditional indexOf calls on the
     // (overwhelmingly common) case where no escaping is needed at all - measured ~2x faster
