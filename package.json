@@ -1,6 +1,6 @@
 {
     "name": "tiny-patch",
-    "version": "0.0.0",
+    "version": "1.0.0",
     "description": "Implementation of JSONPatch (RFC6902) with diff and patch support, optimized for performance in a JS environment, with support for a minified output to reduce bandwidth",
     "keywords": [
         "json",
