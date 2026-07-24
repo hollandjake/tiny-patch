@@ -1,0 +1,65 @@
+{
+    "name": "tiny-patch",
+    "version": "0.0.0",
+    "description": "Implementation of JSONPatch (RFC6902) with diff and patch support, optimized for performance in a JS environment, with support for a minified output to reduce bandwidth",
+    "keywords": [
+        "json",
+        "diff",
+        "patch",
+        "rfc6902",
+        "jsondiff",
+        "jsonpatch"
+    ],
+    "homepage": "https://github.com/hollandjake/tiny-patch#readme",
+    "bugs": {
+        "url": "https://github.com/hollandjake/tiny-patch/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/hollandjake/tiny-patch.git"
+    },
+    "license": "MIT",
+    "author": "Jake Holland",
+    "type": "module",
+    "exports": {
+        "import": {
+            "types": "./dist/index.d.mts",
+            "default": "./dist/index.mjs"
+        },
+        "require": {
+            "types": "./dist/index.d.cts",
+            "default": "./dist/index.cjs"
+        }
+    },
+    "main": "./dist/index.cjs",
+    "unpkg": "./dist/index.umd.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.cts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "bench": "vitest bench --run",
+        "build": "bun build.js",
+        "check": "biome check",
+        "check:fix": "biome check --fix",
+        "test": "vitest run",
+        "test:coverage": "vitest run --coverage",
+        "test:watch": "vitest"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^2.5.5",
+        "@codspeed/vitest-plugin": "^5.7.1",
+        "@types/bun": "^1.3.14",
+        "@vitest/coverage-istanbul": "^4.1.10",
+        "tsdown": "^0.22.14",
+        "typescript": "^7.0.2",
+        "vitest": "^4.1.10"
+    },
+    "engines": {
+        "bun": ">=1.0.0",
+        "deno": ">=1.0.0",
+        "node": ">=11.0.0"
+    },
+    "readme": "./README.md"
+}
