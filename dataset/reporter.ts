@@ -1,3 +1,4 @@
+import { mkdir } from "node:fs/promises";
 import * as path from "node:path";
 import { Chart, Legend, LinearScale, LineElement, PointElement, ScatterController, Title, Tooltip } from "chart.js";
 import { Canvas } from "skia-canvas";
@@ -24,13 +25,17 @@ Documented below is the performance of the different available algorithms agains
 for (const source of SOURCES) {
     const result = await run(source);
     const resNoRFC6902 = Object.fromEntries(Object.entries(result).filter(([k]) => k !== "rfc6902"));
-    const byteLengthChart = await generateChart(
+    await mkdir(path.join(__dirname, `graphs/${source}`), { recursive: true });
+    const byteLengthChart = path.join(__dirname, `graphs/${source}/size.svg`);
+    await generateChart(
         `Size of the computed patches for the dataset ${source}`,
         "Patch size(byte)",
         "byteLength",
         resNoRFC6902 as never,
+        byteLengthChart,
     );
-    const diffTimeChart = await generateChart(
+    const diffTimeChart = path.join(__dirname, `graphs/${source}/duration.svg`);
+    await generateChart(
         `Time to compute the patches for the dataset ${source}`,
         "Diff time(ms)",
         "duration",
@@ -40,11 +45,12 @@ for (const source of SOURCES) {
                 v.map((v) => ({ byteLength: v.byteLength, duration: v.duration / 1_000_000 })),
             ]),
         ) as never,
+        diffTimeChart,
     );
     docWriter.write(`
 ### ${source}
 
-| ![Size of the computed patches for the dataset ${source}](${byteLengthChart}) | ![Time to compute the patches for the dataset ${source}](${diffTimeChart}) |
+| ![Size of the computed patches for the dataset ${source}](./graphs/${source}/size.svg) | ![Time to compute the patches for the dataset ${source}](./graphs/${source}/duration.svg) |
 | --- | --- |
 | a) Patch size | b) Diff time |
 
@@ -85,7 +91,13 @@ await docWriter.end();
 
 type ResType = Awaited<ReturnType<typeof run>>;
 
-async function generateChart(title: string, unit: string, key: keyof ResType[keyof ResType][number], results: ResType) {
+async function generateChart(
+    title: string,
+    unit: string,
+    key: keyof ResType[keyof ResType][number],
+    results: ResType,
+    outPath: string,
+) {
     const KEYS = Object.keys(results);
 
     const canvas = new Canvas(100 * KEYS.length, 400);
@@ -191,7 +203,7 @@ async function generateChart(title: string, unit: string, key: keyof ResType[key
     });
 
     try {
-        return await canvas.toURL("jpg");
+        return await canvas.toFile(outPath);
     } finally {
         chart.destroy();
     }
