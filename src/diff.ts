@@ -1,9 +1,10 @@
-import { deepEqual } from "./deepEquals";
+import { deepClone } from "./deepClone";
+import { deepEquals } from "./deepEquals";
 import type { HashContext, HashFn } from "./hash";
 import { cachedHash, hash, sortedHashArray } from "./hash";
 import { type Maxi, type Mini, minify } from "./patch";
 import { encodeSegment } from "./pointer";
-import type { Json, JsonArray, JsonObject } from "./types";
+import type { Json, JsonArray, JsonObject, MaybeReadonly } from "./types";
 import { hasOwn } from "./utils";
 
 export interface DiffOptions {
@@ -48,19 +49,23 @@ export interface DiffOptions {
 }
 
 export function diff(
-    oldJson: Json | undefined,
-    newJson: Json | undefined,
+    oldJson: MaybeReadonly<Json | undefined>,
+    newJson: MaybeReadonly<Json | undefined>,
     options: DiffOptions & { transform: "minify" },
 ): Mini.Patch;
 export function diff(
-    oldJson: Json | undefined,
-    newJson: Json | undefined,
+    oldJson: MaybeReadonly<Json | undefined>,
+    newJson: MaybeReadonly<Json | undefined>,
     options: DiffOptions & { transform: "maximize" },
 ): Maxi.Patch;
-export function diff(oldJson: Json | undefined, newJson: Json | undefined, options?: DiffOptions): Maxi.Patch;
 export function diff(
-    oldJson: Json | undefined,
-    newJson: Json | undefined,
+    oldJson: MaybeReadonly<Json | undefined>,
+    newJson: MaybeReadonly<Json | undefined>,
+    options?: DiffOptions,
+): Maxi.Patch;
+export function diff(
+    oldJson: MaybeReadonly<Json | undefined>,
+    newJson: MaybeReadonly<Json | undefined>,
     options?: DiffOptions,
 ): Maxi.Patch | Mini.Patch {
     // Scoped to this single call - never persisted, so a caller mutating an object in place
@@ -90,36 +95,36 @@ export function diff(
     }
 }
 
-function recordUnchanged(unchanged: Unchanged, hashValue: number, path: string, jsonValue: Json): void {
+function recordUnchanged(unchanged: Unchanged, hashValue: number, path: string, jsonValue: MaybeReadonly<Json>): void {
     unchanged.paths.push(path);
     unchanged.hashes.push(hashValue);
     unchanged.values.push(jsonValue);
 }
 
-type UnchangedMatch = { path: string; value: Json };
+type UnchangedMatch = { path: string; value: MaybeReadonly<Json> };
 
 function findUnchanged(unchanged: Unchanged, hashValue: number): UnchangedMatch | undefined {
     const hashes = unchanged.hashes;
     for (let i = 0, l = hashes.length; i < l; i++) {
         if (hashes[i] === hashValue) {
-            return { path: unchanged.paths[i] as string, value: unchanged.values[i] as Json };
+            return { path: unchanged.paths[i] as string, value: unchanged.values[i] as MaybeReadonly<Json> };
         }
     }
     return undefined;
 }
 
 function generateUnchanged(
-    oldJson: Json | undefined,
-    newJson: Json | undefined,
+    oldJson: MaybeReadonly<Json | undefined>,
+    newJson: MaybeReadonly<Json | undefined>,
     unchanged: Unchanged,
     path: string,
     hashCtx: HashContext,
 ): void {
-    // deepEqual's signature excludes undefined, but its runtime behavior already handles it
-    // correctly (typeof undefined has no case, so it falls through to `a === b`) - this only
-    // matters at the document root, since Json itself never contains undefined at any depth.
-    if (deepEqual(oldJson as Json, newJson as Json)) {
-        recordUnchanged(unchanged, cachedHash(newJson, hashCtx), path, newJson as Json);
+    if (deepEquals(oldJson, newJson)) {
+        // deepEquals having returned true above guarantees newJson isn't undefined here (the
+        // only way both sides could be undefined is oldJson also being undefined, at the document
+        // root - Json itself never contains undefined at any nested depth).
+        recordUnchanged(unchanged, cachedHash(newJson, hashCtx), path, newJson as MaybeReadonly<Json>);
         return;
     }
 
@@ -131,7 +136,13 @@ function generateUnchanged(
 
     if (typeof oldJson === "object" && oldJson !== null && typeof newJson === "object" && newJson !== null) {
         try {
-            generateUnchangedObject(oldJson as JsonObject, newJson as JsonObject, unchanged, path, hashCtx);
+            generateUnchangedObject(
+                oldJson as MaybeReadonly<JsonObject>,
+                newJson as MaybeReadonly<JsonObject>,
+                unchanged,
+                path,
+                hashCtx,
+            );
         } catch (e) {
             // A pathologically deep structure overflowed the call stack here - give up tracking
             // "unchanged" (copy-detection) for just this subtree rather than crashing the whole
@@ -143,8 +154,8 @@ function generateUnchanged(
 }
 
 function generateUnchangedObject(
-    oldJson: JsonObject,
-    newJson: JsonObject,
+    oldJson: MaybeReadonly<JsonObject>,
+    newJson: MaybeReadonly<JsonObject>,
     unchanged: Unchanged,
     path: string,
     hashCtx: HashContext,
@@ -159,8 +170,8 @@ function generateUnchangedObject(
 }
 
 function generateDiff(
-    oldJson: Json | undefined,
-    newJson: Json | undefined,
+    oldJson: MaybeReadonly<Json | undefined>,
+    newJson: MaybeReadonly<Json | undefined>,
     unchanged: Unchanged,
     patches: PendingOp[],
     path: string,
@@ -178,7 +189,14 @@ function generateDiff(
 
     if (typeof oldJson === "object" && oldJson !== null && typeof newJson === "object" && newJson !== null) {
         try {
-            generateObjectDiff(oldJson as JsonObject, newJson as JsonObject, unchanged, patches, path, hashCtx);
+            generateObjectDiff(
+                oldJson as MaybeReadonly<JsonObject>,
+                newJson as MaybeReadonly<JsonObject>,
+                unchanged,
+                patches,
+                path,
+                hashCtx,
+            );
         } catch (e) {
             if (!(e instanceof RangeError)) throw e;
             generateDeepFallback(oldJson, newJson, patches, path);
@@ -195,22 +213,27 @@ function generateDiff(
 // already-processed part of the document with its normal, fully granular diff - matching how
 // deepClone.ts/deepEquals.ts/hash.ts localize their own recursion-depth fallbacks. deepEqual is
 // itself stack-safe (recursive+iterative-fallback), so this is guaranteed not to also overflow.
-function generateDeepFallback(oldJson: Json, newJson: Json, patches: PendingOp[], path: string): void {
-    if (!deepEqual(oldJson, newJson)) patches.push({ op: "replace", path, value: newJson });
-}
-
-function generateValueDiff(
-    oldJson: Json | undefined,
-    newJson: Json | undefined,
+function generateDeepFallback(
+    oldJson: MaybeReadonly<Json>,
+    newJson: MaybeReadonly<Json>,
     patches: PendingOp[],
     path: string,
 ): void {
-    if (newJson !== oldJson) patches.push({ op: "replace", path, value: newJson as Json });
+    if (!deepEquals(oldJson, newJson)) patches.push({ op: "replace", path, value: deepClone<Json>(newJson) });
+}
+
+function generateValueDiff(
+    oldJson: MaybeReadonly<Json | undefined>,
+    newJson: MaybeReadonly<Json | undefined>,
+    patches: PendingOp[],
+    path: string,
+): void {
+    if (newJson !== oldJson) patches.push({ op: "replace", path, value: deepClone<Json>(newJson as Json) });
 }
 
 function generateObjectDiff(
-    oldJson: JsonObject,
-    newJson: JsonObject,
+    oldJson: MaybeReadonly<JsonObject>,
+    newJson: MaybeReadonly<JsonObject>,
     unchanged: Unchanged,
     patches: PendingOp[],
     path: string,
@@ -255,7 +278,7 @@ function generateObjectDiff(
                 // match by identity rather than content (e.g. an `id` field) - so the matched
                 // value isn't necessarily equal to newVal. Correct any actual difference with a
                 // nested diff instead of silently keeping the copied source's stale content.
-                if (!deepEqual(match.value, newVal)) {
+                if (!deepEquals(match.value, newVal)) {
                     generateDiff(match.value, newVal, unchanged, patches, newPath, hashCtx);
                 }
                 continue;
@@ -270,12 +293,12 @@ function generateObjectDiff(
             patches.splice(previousIndex, 1);
             patches.push({ op: "move", from: oldPath, path: `${path}/${encodeSegment(newKey)}` });
         } else {
-            patches.push({ op: "add", path: `${path}/${encodeSegment(newKey)}`, value: newVal });
+            patches.push({ op: "add", path: `${path}/${encodeSegment(newKey)}`, value: deepClone<Json>(newVal) });
         }
     }
 }
 
-function findValueInPatch(newValue: Json | undefined, patches: PendingOp[]): number {
+function findValueInPatch(newValue: MaybeReadonly<Json | undefined>, patches: PendingOp[]): number {
     for (let i = 0, l = patches.length; i < l; i++) {
         const p = patches[i];
         if ("value" in p && p.value === newValue) return i;
@@ -287,8 +310,8 @@ type ArrOp = "add" | "remove" | "move" | "replace" | "copy";
 
 interface ArrPatch {
     op: ArrOp;
-    value?: Json;
-    valueOld?: Json;
+    value?: MaybeReadonly<Json>;
+    valueOld?: MaybeReadonly<Json>;
     from?: number;
     index: number;
     hash?: number;
@@ -301,8 +324,8 @@ interface ArrPatch {
 }
 
 function generateArrayDiff(
-    oldJson: JsonArray,
-    newJson: JsonArray,
+    oldJson: MaybeReadonly<JsonArray>,
+    newJson: MaybeReadonly<JsonArray>,
     unchanged: Unchanged,
     patches: PendingOp[],
     path: string,
@@ -311,7 +334,7 @@ function generateArrayDiff(
     if (oldJson.length === 0 && newJson.length === 0) return;
 
     if (oldJson.length === 0) {
-        patches.push({ op: "add", path, value: newJson });
+        patches.push({ op: "add", path, value: deepClone<Json>(newJson) });
         return;
     }
 
@@ -319,7 +342,7 @@ function generateArrayDiff(
     // unchanged. Extremely common in practice - e.g. a sibling scalar field changed on the parent
     // object, triggering a nested diff, while this array itself never did (measured: 100% of
     // nested arrays visited within changed real-dataset records were themselves fully unchanged).
-    if (deepEqual(oldJson, newJson)) return;
+    if (deepEquals(oldJson, newJson)) return;
 
     const arrayPatches = transformArray(oldJson, newJson, unchanged, path, hashCtx);
     for (let i = 0, l = arrayPatches.length; i < l; i++) {
@@ -328,8 +351,8 @@ function generateArrayDiff(
 }
 
 function transformArray(
-    oldJson: JsonArray,
-    newJson: JsonArray,
+    oldJson: MaybeReadonly<JsonArray>,
+    newJson: MaybeReadonly<JsonArray>,
     unchanged: Unchanged,
     path: string,
     hashCtx: HashContext,
@@ -425,7 +448,11 @@ function transformArray(
                     current.op = "replace";
                     arrPatch.splice(m - 1, 1);
                     arrtmp.pop();
-                    arrtmp.push({ op: "replace", value: current.value as Json, path: `${path}/${current.index}` });
+                    arrtmp.push({
+                        op: "replace",
+                        value: deepClone<Json>(current.value as Json),
+                        path: `${path}/${current.index}`,
+                    });
                     continue;
                 }
 
@@ -444,11 +471,15 @@ function transformArray(
                     // match is guaranteed deepEqual, but a custom identity-based DiffOptions.hash
                     // can match by id rather than content - correct any real difference instead of
                     // silently keeping the copy source's stale content.
-                    if (!deepEqual(copyMatch.value, current.value as Json)) {
+                    if (!deepEquals(copyMatch.value, current.value as Json)) {
                         generateDiff(copyMatch.value, current.value as Json, unchanged, arrtmp, newPath, hashCtx);
                     }
                 } else {
-                    arrtmp.push({ op: "add", value: current.value as Json, path: `${path}/${current.index}` });
+                    arrtmp.push({
+                        op: "add",
+                        value: deepClone<Json>(current.value as Json),
+                        path: `${path}/${current.index}`,
+                    });
                 }
                 break;
             }
@@ -492,7 +523,7 @@ function transformArray(
                     // deepEqual walks both values directly and can bail out on the first
                     // mismatch, unlike JSON.stringify which must fully serialize both sides
                     // (two full-size string allocations) before it can even compare them.
-                    if (deepEqual(current.valueOld as Json, current.value as Json)) {
+                    if (deepEquals(current.valueOld as Json, current.value as Json)) {
                         arrUnchanged.push(current);
                         arrPatch.splice(m, 1);
                         continue;
@@ -522,7 +553,7 @@ function transformArray(
                 // destination instead of silently keeping the pre-move content (same reasoning as
                 // the same-index case above, and the copy corrections in generateObjectDiff and
                 // the "add" case just above).
-                if (!deepEqual(current.valueOld as Json, current.value as Json)) {
+                if (!deepEquals(current.valueOld as Json, current.value as Json)) {
                     generateDiff(current.valueOld, current.value, unchanged, arrtmp, newPath, hashCtx);
                 }
                 current.opCount = arrtmp.length - moveOpsStart;
@@ -642,7 +673,7 @@ function insertionSortArrPatch(arr: ArrPatch[]): void {
 // Only ever called with `element.op === "add"` (see the "add" case in transformArray's main
 // loop, which never reassigns current.op before this call) - no need to guard against
 // "remove"/"copy" ops that can never actually reach here.
-type ArrCopyMatch = { index: number; value: Json };
+type ArrCopyMatch = { index: number; value: MaybeReadonly<Json> };
 
 function findCopyInArray(
     element: ArrPatch,
@@ -652,18 +683,23 @@ function findCopyInArray(
 ): ArrCopyMatch | undefined {
     for (let i = 0; i < m; i++) {
         const other = array[i] as ArrPatch;
-        if (element.hash === other.hash) return { index: other.index, value: other.value as Json };
+        if (element.hash === other.hash) return { index: other.index, value: other.value as MaybeReadonly<Json> };
     }
 
     for (let i = 0, l = arrUnchanged.length; i < l; i++) {
         const u = arrUnchanged[i] as ArrPatch;
-        if (element.hash === u.hash) return { index: u.index, value: u.value as Json };
+        if (element.hash === u.hash) return { index: u.index, value: u.value as MaybeReadonly<Json> };
     }
 
     return undefined;
 }
 
-type PendingOp = Maxi.AddOp | (Maxi.RemoveOp & { value?: Json }) | Maxi.ReplaceOp | Maxi.MoveOp | Maxi.CopyOp;
+type PendingOp =
+    | Maxi.AddOp
+    | (Maxi.RemoveOp & { value?: MaybeReadonly<Json> })
+    | Maxi.ReplaceOp
+    | Maxi.MoveOp
+    | Maxi.CopyOp;
 
 // Paths where the old and new documents agree, used to detect copies: parallel arrays (path,
 // hash, value) rather than an array of "path=hash" strings, so a lookup is a plain number
@@ -677,4 +713,4 @@ type PendingOp = Maxi.AddOp | (Maxi.RemoveOp & { value?: Json }) | Maxi.ReplaceO
 // collision is astronomically rare, but a caller-supplied DiffOptions.hash (e.g. matching by an
 // `id` field) can deliberately hash two *different* values the same way - without this check,
 // that would silently emit a "copy" that drops the differing content instead of preserving it.
-type Unchanged = { paths: string[]; hashes: number[]; values: Json[] };
+type Unchanged = { paths: string[]; hashes: number[]; values: MaybeReadonly<Json>[] };

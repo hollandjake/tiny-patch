@@ -1,4 +1,4 @@
-import type { Json, JsonArray, JsonObject } from "./types";
+import type { DeepMutable, DeepReadonly, Json, JsonArray, JsonObject } from "./types";
 
 /**
  * Creates a deep clone of the given JSON-compatible value.
@@ -8,9 +8,11 @@ import type { Json, JsonArray, JsonObject } from "./types";
  * @param val - The JSON-compatible value to be cloned. Can also be undefined.
  * @return A deep clone of the input value, or `undefined` if the input is `undefined`.
  */
-export function deepClone<T extends Json | undefined>(val: T): T {
-    if (val === undefined) return val;
-    return cloneRecursive(val);
+export function deepClone<T extends Json | undefined>(val: DeepReadonly<T>): DeepMutable<T>;
+export function deepClone<T extends Json | undefined>(val: T): DeepMutable<T>;
+export function deepClone<T extends Json | undefined>(val: T): DeepMutable<T> {
+    if (val === undefined) return val as DeepMutable<T>;
+    return cloneRecursive(val) as DeepMutable<T>;
 }
 
 /**

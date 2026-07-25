@@ -280,7 +280,7 @@ function insertionSortIndices(hashes: Uint32Array, n: number, indices: number[])
  * signed typed array would let either kind of value silently wrap to a negative number and sort
  * backwards.
  */
-export function sortedHashArray<T>(a: T[], ctx: HashContext): HashedValue<T>[] {
+export function sortedHashArray<T>(a: readonly T[], ctx: HashContext): HashedValue<T>[] {
     const n = a.length;
     const hashes = new Uint32Array(n);
     for (let i = 0; i < n; i++) {

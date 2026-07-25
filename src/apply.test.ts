@@ -1,5 +1,6 @@
 import { describe, test } from "vitest";
 import { apply } from "./apply";
+import { deepFreeze } from "./deepFreeze";
 import { MissingError } from "./error";
 import type { Json } from "./types";
 
@@ -202,5 +203,29 @@ describe("Extended Spec", () => {
             });
             expect(Object.keys((result as any).qux)).toEqual(["corge", "thud"]);
         });
+    });
+});
+
+describe("readonly support", () => {
+    test("applies a patch to a deeply-frozen target without throwing", ({ expect }) => {
+        const a = deepFreeze<Json>({ foo: "bar", nested: { list: [1, 2, 3] } });
+        const result = apply(a, [{ op: "add", path: "/baz", value: "qux" }]);
+        expect(result).toEqual({ foo: "bar", nested: { list: [1, 2, 3] }, baz: "qux" });
+        // the frozen source is left untouched
+        expect(a).toEqual({ foo: "bar", nested: { list: [1, 2, 3] } });
+    });
+
+    test("the result of applying to a frozen target is itself mutable", ({ expect }) => {
+        const a = deepFreeze({ foo: "bar" });
+        const result = apply(a, [{ op: "replace", path: "/foo", value: "baz" }]) as any;
+        expect(() => {
+            result.foo = "mutated";
+        }).not.toThrow();
+        expect(result.foo).toBe("mutated");
+    });
+
+    test("still accepts an ordinary mutable target", ({ expect }) => {
+        const a = { foo: "bar" };
+        expect(apply(a, [{ op: "add", path: "/baz", value: "qux" }])).toEqual({ foo: "bar", baz: "qux" });
     });
 });

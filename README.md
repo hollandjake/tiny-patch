@@ -56,6 +56,16 @@ apply(obj, patch);
 // { first: 'Jake', last: 'Holland' }
 ```
 
+## Performance
+
+Want to know how this library performs compared to others?
+
+| ![Size of the computed patches for the dataset Xignite](./dataset/graphs/Xignite/size.svg) | ![Time to compute the patches for the dataset Xignite](./dataset/graphs/Xignite/duration.svg) |
+|--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| a) Patch size                                                                              | b) Diff time                                                                                  |
+
+Full details can be found in this [report](./dataset/results.md)
+
 ## API
 
 ### `diff(input: Json | undefined, output: Json | undefined, opts?: DiffOptions): Patch`

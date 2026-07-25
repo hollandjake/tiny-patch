@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { apply } from "./apply";
-import { deepEqual } from "./deepEquals";
+import { deepEquals } from "./deepEquals";
+import { deepFreeze } from "./deepFreeze";
 import { diff } from "./diff";
 import { hash } from "./hash";
 import type { Json, JsonArray, JsonObject } from "./types";
@@ -291,7 +292,7 @@ describe("diff - deep recursion safety", () => {
         expect(patch).toBeDefined();
         // biome-ignore lint/style/noNonNullAssertion: guaranteed set alongside patch above
         const result = apply(a!, patch as never);
-        expect(deepEqual(result, b)).toBe(true);
+        expect(deepEquals(result, b)).toBe(true);
     });
 });
 
@@ -511,5 +512,58 @@ describe("diff - custom hash option", () => {
         const b = [3, 2, 1];
         expect(diff(a, b, {})).toEqual(diff(a, b));
         expect(diff(a, b, { hash: undefined })).toEqual(diff(a, b));
+    });
+});
+
+describe("readonly support", () => {
+    test("diffs two deeply-frozen documents without throwing", () => {
+        const a = deepFreeze<Json>({ foo: "bar", nested: { list: [1, 2, 3] } });
+        const b = deepFreeze<Json>({ foo: "baz", nested: { list: [1, 2, 3, 4] } });
+        expect(diff(a, b)).toEqual([
+            { op: "add", path: "/nested/list/3", value: 4 },
+            { op: "replace", path: "/foo", value: "baz" },
+        ]);
+    });
+
+    test("diffing a frozen document produces a patch applicable to it", () => {
+        const a = deepFreeze<Json>({ a: 1, b: [1, 2, { c: 3 }] });
+        const b = { a: 1, b: [1, 2, { c: 4 }], d: "new" };
+        expect(apply(a, diff(a, b))).toEqual(b);
+    });
+
+    test("accepts a frozen old document against a mutable new document, and vice versa", () => {
+        const a = deepFreeze<Json>({ a: 1 });
+        const b = { a: 2 };
+        expect(diff(a, b)).toEqual([{ op: "replace", path: "/a", value: 2 }]);
+        expect(diff(b, a)).toEqual([{ op: "replace", path: "/a", value: 1 }]);
+    });
+
+    test("still accepts ordinary mutable documents", () => {
+        const a = { a: 1 };
+        const b = { a: 2 };
+        expect(diff(a, b)).toEqual([{ op: "replace", path: "/a", value: 2 }]);
+    });
+
+    test("an add/replace op's value is always a fresh mutable copy, even from a frozen input", () => {
+        // Patch is typed as plain (mutable) Json, so diff() must never hand back a value that's
+        // still a reference into a frozen input document - it deepClone()s any value it lifts
+        // from oldJson/newJson before embedding it in an emitted op.
+        const a = {};
+        const b = deepFreeze<Json>({ child: { x: 1 } });
+
+        const patch = diff(a, b);
+        expect(patch).toEqual([{ op: "add", path: "/child", value: { x: 1 } }]);
+
+        const addOp = patch[0];
+        if (addOp.op !== "add") throw new Error("expected an add op");
+        expect(addOp.value).not.toBe((b as { child: { x: number } }).child);
+        // the patch's own value is a fresh, genuinely mutable copy
+        expect(() => {
+            (addOp.value as { x: number }).x = 2;
+        }).not.toThrow();
+        expect(addOp.value).toEqual({ x: 2 });
+
+        // the frozen source document is untouched
+        expect(b).toEqual({ child: { x: 1 } });
     });
 });

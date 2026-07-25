@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { deepEqual } from "./deepEquals";
-import type { Json } from "./types";
+import { deepEquals } from "./deepEquals";
+import { deepFreeze } from "./deepFreeze";
+import type { DeepReadonly, Json } from "./types";
 
 describe("deepEqual", () => {
     test.each([
@@ -55,7 +56,7 @@ describe("deepEqual", () => {
         ["equal explicit undefined values", { a: undefined }, { a: undefined }, true],
         ["explicit undefined vs a value", { a: undefined }, { a: 1 }, false],
     ] as [name: string, a: Json, b: Json, expected: boolean][])("%s", (_name, a, b, expected) => {
-        expect(deepEqual(a, b)).toBe(expected);
+        expect(deepEquals(a, b)).toBe(expected);
     });
 
     test("is correct at large scale (100k levels deep)", () => {
@@ -74,12 +75,12 @@ describe("deepEqual", () => {
         const a = makeDeep();
         const b = makeDeep();
 
-        expect(deepEqual(a, b)).toBe(true);
+        expect(deepEquals(a, b)).toBe(true);
 
         let ref: object = b;
         for (let i = 0; i < depth - 1; i++) ref = ref[`key_${i}` as never];
         ref[`key_${depth - 1}` as never] = 1 as never;
-        expect(deepEqual(a, b)).toBe(false);
+        expect(deepEquals(a, b)).toBe(false);
     });
 });
 
@@ -113,43 +114,43 @@ describe("deepEqual - iterative fallback (fault injection)", () => {
     test("falls back correctly for equal nested arrays", () => {
         const a = { trap: makeOnceThrowingValue([1, 2, 3]) };
         const b = { trap: { trap: [1, 2, 3] } };
-        expect(deepEqual(a, b)).toBe(true);
+        expect(deepEquals(a, b)).toBe(true);
     });
 
     test("falls back correctly for arrays that differ in length", () => {
         const a = { trap: makeOnceThrowingValue([1, 2, 3]) };
         const b = { trap: { trap: [1, 2] } };
-        expect(deepEqual(a, b)).toBe(false);
+        expect(deepEquals(a, b)).toBe(false);
     });
 
     test("falls back correctly for arrays with a differing element", () => {
         const a = { trap: makeOnceThrowingValue([1, 2, 3]) };
         const b = { trap: { trap: [1, 2, 4] } };
-        expect(deepEqual(a, b)).toBe(false);
+        expect(deepEquals(a, b)).toBe(false);
     });
 
     test("falls back correctly for objects with a differing key set", () => {
         const a = { trap: makeOnceThrowingValue({ p: 1, q: 2 }) };
         const b = { trap: { trap: { p: 1, r: 2 } } };
-        expect(deepEqual(a, b)).toBe(false);
+        expect(deepEquals(a, b)).toBe(false);
     });
 
     test("falls back correctly for objects with differing key counts", () => {
         const a = { trap: makeOnceThrowingValue({ p: 1 }) };
         const b = { trap: { trap: { p: 1, q: 2 } } };
-        expect(deepEqual(a, b)).toBe(false);
+        expect(deepEquals(a, b)).toBe(false);
     });
 
     test("falls back correctly when a nested value is null vs a non-null object", () => {
         const a = { trap: makeOnceThrowingValue(null) };
         const b = { trap: { trap: { p: 1 } } };
-        expect(deepEqual(a, b)).toBe(false);
+        expect(deepEquals(a, b)).toBe(false);
     });
 
     test("falls back correctly for a differing primitive resolved through the fallback's own stack", () => {
         const a = { trap: makeOnceThrowingValue(5) };
         const b = { trap: { trap: 6 } };
-        expect(deepEqual(a, b)).toBe(false);
+        expect(deepEquals(a, b)).toBe(false);
     });
 
     test("does not swallow a non-RangeError exception", () => {
@@ -158,6 +159,33 @@ describe("deepEqual - iterative fallback (fault injection)", () => {
                 throw new TypeError("not a stack overflow");
             },
         };
-        expect(() => deepEqual(a, { poison: 1 })).toThrow(TypeError);
+        expect(() => deepEquals(a, { poison: 1 })).toThrow(TypeError);
+    });
+});
+
+describe("deepEqual - readonly support", () => {
+    test("compares two deeply-frozen equal values as equal", () => {
+        const a = deepFreeze<Json>({ a: 1, b: { c: [1, 2, { d: 3 }] } });
+        const b = deepFreeze<Json>({ a: 1, b: { c: [1, 2, { d: 3 }] } });
+        expect(deepEquals(a, b)).toBe(true);
+    });
+
+    test("compares two deeply-frozen different values as unequal", () => {
+        const a = deepFreeze<Json>({ a: 1, b: { c: [1, 2, { d: 3 }] } });
+        const b = deepFreeze<Json>({ a: 1, b: { c: [1, 2, { d: 4 }] } });
+        expect(deepEquals(a, b)).toBe(false);
+    });
+
+    test("compares a frozen value against a plain mutable value", () => {
+        const a = deepFreeze<Json>({ a: 1, b: [1, 2] });
+        const b = { a: 1, b: [1, 2] };
+        expect(deepEquals(a, b)).toBe(true);
+        expect(deepEquals(b, a)).toBe(true);
+    });
+
+    test("accepts readonly-typed arguments without a cast", () => {
+        const a: DeepReadonly<Json> = deepFreeze({ a: 1 });
+        const b: DeepReadonly<Json> = deepFreeze({ a: 1 });
+        expect(deepEquals(a, b)).toBe(true);
     });
 });

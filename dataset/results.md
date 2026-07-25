@@ -18,13 +18,13 @@ Documented below is the performance of the different available algorithms agains
 #### Averages
 | Library | Patch Size Avg (bytes) | Diff-time Avg |
 | ------- | ---------------------- | ------------------ |
-| tiny-patch (minified) | 3756 | 47.237μs |
-| tiny-patch | 6705 | 64.335μs |
-| JDR | 6705 | 100.488μs |
-| Fast-JSON-Patch | 6705 | 22.871μs |
-| rfc6902 | 6705 | 5660.274μs |
-| jiff | 10167 | 72.059μs |
-| JSON8 patch | 15511 | 1.744μs |
+| tiny-patch (minified) | 3756 | 43.499μs |
+| tiny-patch | 6705 | 52.343μs |
+| JDR | 6705 | 93.755μs |
+| Fast-JSON-Patch | 6705 | 21.996μs |
+| rfc6902 | 6705 | 5358.589μs |
+| jiff | 10167 | 68.238μs |
+| JSON8 patch | 15511 | 1.674μs |
 
 ### Stackoverflow
 
@@ -35,13 +35,13 @@ Documented below is the performance of the different available algorithms agains
 #### Averages
 | Library | Patch Size Avg (bytes) | Diff-time Avg |
 | ------- | ---------------------- | ------------------ |
-| tiny-patch (minified) | 2077 | 28.913μs |
-| rfc6902 | 2262 | 2205.024μs |
-| tiny-patch | 2297 | 34.792μs |
-| JDR | 2297 | 74.565μs |
-| jiff | 2349 | 51.365μs |
-| JSON8 patch | 11749 | 3.479μs |
-| Fast-JSON-Patch | 23622 | 21.944μs |
+| tiny-patch (minified) | 2077 | 25.916μs |
+| rfc6902 | 2262 | 2138.689μs |
+| tiny-patch | 2297 | 33.61μs |
+| JDR | 2297 | 69.015μs |
+| jiff | 2349 | 47.853μs |
+| JSON8 patch | 11749 | 2.704μs |
+| Fast-JSON-Patch | 23622 | 20.563μs |
 
 ### Twitter
 
@@ -52,13 +52,13 @@ Documented below is the performance of the different available algorithms agains
 #### Averages
 | Library | Patch Size Avg (bytes) | Diff-time Avg |
 | ------- | ---------------------- | ------------------ |
-| rfc6902 | 4900 | 24691.465μs |
-| tiny-patch (minified) | 17276 | 236.137μs |
-| tiny-patch | 21704 | 250.221μs |
-| JDR | 21704 | 705.133μs |
-| Fast-JSON-Patch | 37745 | 170.172μs |
-| jiff | 51080 | 410.301μs |
-| JSON8 patch | 88479 | 8.955μs |
+| rfc6902 | 4900 | 23193.535μs |
+| tiny-patch (minified) | 17276 | 222.88μs |
+| tiny-patch | 21704 | 234.404μs |
+| JDR | 21704 | 652.952μs |
+| Fast-JSON-Patch | 37745 | 160.153μs |
+| jiff | 51080 | 372.171μs |
+| JSON8 patch | 88479 | 8.432μs |
 
 ## Hardware
 - Manufacturer: Apple

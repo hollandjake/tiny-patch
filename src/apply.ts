@@ -1,9 +1,9 @@
 import { deepClone } from "./deepClone";
-import { deepEqual } from "./deepEquals";
+import { deepEquals } from "./deepEquals";
 import { InvalidOperationError, TestError } from "./error";
 import { maximize, type Patch } from "./patch";
 import { decodePointer, evaluatePointer } from "./pointer";
-import type { Json, JsonObject } from "./types";
+import type { Json, JsonObject, MaybeReadonly } from "./types";
 import { hasOwn } from "./utils";
 
 export interface ApplyOptions {
@@ -20,7 +20,7 @@ export interface ApplyOptions {
  * @param patch - The patch to apply
  * @param options - Options controlling how the patch is applied
  */
-export function apply(target: Json | undefined, patch: Patch, options?: ApplyOptions): Json | undefined {
+export function apply(target: MaybeReadonly<Json | undefined>, patch: Patch, options?: ApplyOptions): Json | undefined {
     const maxiPatch = maximize(patch);
     const numPatches = maxiPatch.length;
 
@@ -207,7 +207,7 @@ function test(target: Json | undefined, path: string, test: Json | undefined): J
     const tokens = decodePointer(path);
     const [, , value] = evaluatePointer(tokens, target, true);
 
-    if (!deepEqual(value, test)) throw new TestError(value, test);
+    if (!deepEquals(value, test)) throw new TestError(value, test);
 
     return target;
 }

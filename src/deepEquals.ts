@@ -1,7 +1,7 @@
-import type { Json } from "./types";
+import type { Json, MaybeReadonly } from "./types";
 import { hasOwn } from "./utils";
 
-export function deepEqual(a: Json | undefined, b: Json | undefined): boolean {
+export function deepEquals(a: MaybeReadonly<Json | undefined>, b: MaybeReadonly<Json | undefined>): boolean {
     if (a === undefined || b === undefined) return a === b;
     return equalRecursive(a, b);
 }
@@ -13,7 +13,7 @@ export function deepEqual(a: Json | undefined, b: Json | undefined): boolean {
  * structure overflows the call stack, only the failing subtree falls back to the iterative
  * version - not the whole comparison - see the stack-overflow test in deepEquals.test.ts.
  */
-function equalRecursive(a: Json, b: Json): boolean {
+function equalRecursive(a: MaybeReadonly<Json>, b: MaybeReadonly<Json>): boolean {
     // Reference equality trivially implies deep equality - and lets a shared subtree (the very
     // common Redux/Immer-style "shallow copy, change a few things" update pattern: unchanged
     // parts of the new document are literally the same object as in the old one) skip walking
@@ -63,8 +63,8 @@ function equalRecursive(a: Json, b: Json): boolean {
     }
 }
 
-function equalIterative(a: Json, b: Json): boolean {
-    const stack: [Json, Json][] = [[a, b]];
+function equalIterative(a: MaybeReadonly<Json>, b: MaybeReadonly<Json>): boolean {
+    const stack: [MaybeReadonly<Json>, MaybeReadonly<Json>][] = [[a, b]];
 
     while (stack.length > 0) {
         // biome-ignore lint/style/noNonNullAssertion: ignore

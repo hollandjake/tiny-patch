@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { deepEqual } from "./deepEquals";
+import { deepEquals } from "./deepEquals";
 import { cachedHash, type HashContext, hash, sortedHashArray } from "./hash";
 import type { Json } from "./types";
 
@@ -90,7 +90,7 @@ describe("hash", () => {
             [null, null],
             [-0, 0],
         ] as [Json, Json][])("holds for %o vs %o", (a, b) => {
-            expect(deepEqual(a, b)).toBe(true);
+            expect(deepEquals(a, b)).toBe(true);
             expect(hash(a)).toBe(hash(b));
         });
     });

@@ -1,6 +1,6 @@
 import { bench, describe } from "vitest";
 import { deepClone } from "./deepClone";
-import { deepEqual } from "./deepEquals";
+import { deepEquals } from "./deepEquals";
 import type { Json, JsonArray, JsonObject } from "./types";
 
 /**
@@ -61,7 +61,7 @@ const fixtures = {
 for (const [fixtureName, fixture] of Object.entries(fixtures)) {
     for (const [providerName, provider] of Object.entries(providers)) {
         const actual = provider(deepClone(fixture));
-        if (!deepEqual(actual, fixture)) {
+        if (!deepEquals(actual, fixture)) {
             throw new Error(`${providerName} disagrees with deepClone on fixture "${fixtureName}"`);
         }
     }
