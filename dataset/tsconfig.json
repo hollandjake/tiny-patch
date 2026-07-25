@@ -1,11 +1,10 @@
 {
-    "include": ["src", "index.ts"],
     "compilerOptions": {
         "lib": ["ESNext"],
         "module": "ESNext",
         "target": "ESNext",
         "skipLibCheck": true,
-        "types": ["node"],
+        "types": ["bun"],
 
         "moduleResolution": "bundler",
         "resolveJsonModule": true,

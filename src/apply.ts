@@ -1,5 +1,5 @@
 import { deepClone } from "./deepClone";
-import { deepEqual } from "./deepEquals";
+import { deepEquals } from "./deepEquals";
 import { InvalidOperationError, TestError } from "./error";
 import { maximize, type Patch } from "./patch";
 import { decodePointer, evaluatePointer } from "./pointer";
@@ -207,7 +207,7 @@ function test(target: Json | undefined, path: string, test: Json | undefined): J
     const tokens = decodePointer(path);
     const [, , value] = evaluatePointer(tokens, target, true);
 
-    if (!deepEqual(value, test)) throw new TestError(value, test);
+    if (!deepEquals(value, test)) throw new TestError(value, test);
 
     return target;
 }

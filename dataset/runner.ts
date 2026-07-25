@@ -12,7 +12,7 @@ import json8 from "json8-patch";
 import rfc6902 from "rfc6902";
 // @ts-expect-error
 import hashToNum from "string-hash";
-import tinypatch, { type Patch } from "tiny-patch";
+import * as tinypatch from "tiny-patch";
 
 // json-diff-rfc6902 always falls back to obj.id/_id/answer_id/title as an implicit identity
 // key before hashing full content - even with no HASH_ID option passed - which lets it match
@@ -34,7 +34,7 @@ export const ALGORITHMS = {
     "Fast-JSON-Patch": (a, b) => jsonpatch.compare(a, b) as any[],
     rfc6902: (a, b) => rfc6902.createPatch(a, b),
     "JSON8 patch": (a, b) => json8.diff(a, b),
-} as const satisfies Record<string, (a: any, b: any) => Patch>;
+} as const satisfies Record<string, (a: any, b: any) => tinypatch.Patch>;
 
 export async function run(source: (typeof SOURCES)[number]) {
     console.log(`Processing case ${source}`);

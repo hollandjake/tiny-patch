@@ -1,7 +1,7 @@
 import type { Json } from "./types";
 import { hasOwn } from "./utils";
 
-export function deepEqual(a: Json | undefined, b: Json | undefined): boolean {
+export function deepEquals(a: Json | undefined, b: Json | undefined): boolean {
     if (a === undefined || b === undefined) return a === b;
     return equalRecursive(a, b);
 }

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { apply } from "./apply";
-import { deepEqual } from "./deepEquals";
+import { deepEquals } from "./deepEquals";
 import { diff } from "./diff";
 import { hash } from "./hash";
 import type { Json, JsonArray, JsonObject } from "./types";
@@ -291,7 +291,7 @@ describe("diff - deep recursion safety", () => {
         expect(patch).toBeDefined();
         // biome-ignore lint/style/noNonNullAssertion: guaranteed set alongside patch above
         const result = apply(a!, patch as never);
-        expect(deepEqual(result, b)).toBe(true);
+        expect(deepEquals(result, b)).toBe(true);
     });
 });
 

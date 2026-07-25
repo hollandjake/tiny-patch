@@ -1,4 +1,4 @@
-import { deepEqual } from "./deepEquals";
+import { deepEquals } from "./deepEquals";
 import type { HashContext, HashFn } from "./hash";
 import { cachedHash, hash, sortedHashArray } from "./hash";
 import { type Maxi, type Mini, minify } from "./patch";
@@ -118,7 +118,7 @@ function generateUnchanged(
     // deepEqual's signature excludes undefined, but its runtime behavior already handles it
     // correctly (typeof undefined has no case, so it falls through to `a === b`) - this only
     // matters at the document root, since Json itself never contains undefined at any depth.
-    if (deepEqual(oldJson as Json, newJson as Json)) {
+    if (deepEquals(oldJson as Json, newJson as Json)) {
         recordUnchanged(unchanged, cachedHash(newJson, hashCtx), path, newJson as Json);
         return;
     }
@@ -196,7 +196,7 @@ function generateDiff(
 // deepClone.ts/deepEquals.ts/hash.ts localize their own recursion-depth fallbacks. deepEqual is
 // itself stack-safe (recursive+iterative-fallback), so this is guaranteed not to also overflow.
 function generateDeepFallback(oldJson: Json, newJson: Json, patches: PendingOp[], path: string): void {
-    if (!deepEqual(oldJson, newJson)) patches.push({ op: "replace", path, value: newJson });
+    if (!deepEquals(oldJson, newJson)) patches.push({ op: "replace", path, value: newJson });
 }
 
 function generateValueDiff(
@@ -255,7 +255,7 @@ function generateObjectDiff(
                 // match by identity rather than content (e.g. an `id` field) - so the matched
                 // value isn't necessarily equal to newVal. Correct any actual difference with a
                 // nested diff instead of silently keeping the copied source's stale content.
-                if (!deepEqual(match.value, newVal)) {
+                if (!deepEquals(match.value, newVal)) {
                     generateDiff(match.value, newVal, unchanged, patches, newPath, hashCtx);
                 }
                 continue;
@@ -319,7 +319,7 @@ function generateArrayDiff(
     // unchanged. Extremely common in practice - e.g. a sibling scalar field changed on the parent
     // object, triggering a nested diff, while this array itself never did (measured: 100% of
     // nested arrays visited within changed real-dataset records were themselves fully unchanged).
-    if (deepEqual(oldJson, newJson)) return;
+    if (deepEquals(oldJson, newJson)) return;
 
     const arrayPatches = transformArray(oldJson, newJson, unchanged, path, hashCtx);
     for (let i = 0, l = arrayPatches.length; i < l; i++) {
@@ -444,7 +444,7 @@ function transformArray(
                     // match is guaranteed deepEqual, but a custom identity-based DiffOptions.hash
                     // can match by id rather than content - correct any real difference instead of
                     // silently keeping the copy source's stale content.
-                    if (!deepEqual(copyMatch.value, current.value as Json)) {
+                    if (!deepEquals(copyMatch.value, current.value as Json)) {
                         generateDiff(copyMatch.value, current.value as Json, unchanged, arrtmp, newPath, hashCtx);
                     }
                 } else {
@@ -492,7 +492,7 @@ function transformArray(
                     // deepEqual walks both values directly and can bail out on the first
                     // mismatch, unlike JSON.stringify which must fully serialize both sides
                     // (two full-size string allocations) before it can even compare them.
-                    if (deepEqual(current.valueOld as Json, current.value as Json)) {
+                    if (deepEquals(current.valueOld as Json, current.value as Json)) {
                         arrUnchanged.push(current);
                         arrPatch.splice(m, 1);
                         continue;
@@ -522,7 +522,7 @@ function transformArray(
                 // destination instead of silently keeping the pre-move content (same reasoning as
                 // the same-index case above, and the copy corrections in generateObjectDiff and
                 // the "add" case just above).
-                if (!deepEqual(current.valueOld as Json, current.value as Json)) {
+                if (!deepEquals(current.valueOld as Json, current.value as Json)) {
                     generateDiff(current.valueOld, current.value, unchanged, arrtmp, newPath, hashCtx);
                 }
                 current.opCount = arrtmp.length - moveOpsStart;

@@ -16,6 +16,9 @@
     "skia-canvas": "^3.0.8",
     "systeminformation": "^5.33.1"
   },
+  "devDependencies": {
+    "@types/bun":"^1.3.14"
+  },
   "trustedDependencies": [
     "skia-canvas"
   ]

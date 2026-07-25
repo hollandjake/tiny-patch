@@ -1,17 +1,32 @@
 import { build } from "tsdown";
 
 await build({
-    entry: ["./src/index.ts"],
+    entry: ["./index.ts"],
     outDir: "./dist",
     platform: "neutral",
     target: "es6",
     fixedExtension: true,
     format: {
-        es: {},
+        esm: {},
         cjs: {
             outputOptions: {
                 exports: "named",
             },
+            plugins: [
+                {
+                    name: "cjs-interop",
+                    renderChunk(code) {
+                        // Only target the CommonJS output bundle
+                        const fallback = `
+// Compatibility fallback for direct CJS require()
+if (module.exports && module.exports.default) {
+  Object.assign(module.exports, module.exports.default);
+}
+`;
+                        return { code: code + fallback };
+                    },
+                },
+            ],
         },
         umd: {
             outputOptions: {
@@ -22,23 +37,5 @@ await build({
     },
     dts: true,
     clean: true,
-    plugins: [
-        {
-            name: "cjs-interop",
-            renderChunk(code, chunk) {
-                // Only target the CommonJS output bundle
-                if (chunk.fileName.endsWith(".cjs")) {
-                    const fallback = `
-// Compatibility fallback for direct CJS require()
-if (module.exports && module.exports.default) {
-  Object.assign(module.exports, module.exports.default);
-}
-`;
-                    return { code: code + fallback };
-                }
-                return null;
-            },
-        },
-    ],
     minify: true,
 });
