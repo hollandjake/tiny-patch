@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/hollandjake/tiny-patch/compare/v1.1.0...v1.2.0) (2026-07-25)
+
+
+### Features
+
+* add support for deeply readonly data ([d7764d4](https://github.com/hollandjake/tiny-patch/commit/d7764d43a1cec1b165572e17a5279c9c70f4c3a5))
+
 ## [1.1.0](https://github.com/hollandjake/tiny-patch/compare/v1.0.0...v1.1.0) (2026-07-24)
 
 
